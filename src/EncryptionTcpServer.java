@@ -79,6 +79,10 @@ public class EncryptionTcpServer {
         while(true) {
             encryptedMsgFromClient = waitForEncryptedMessage();
             System.out.println("Decrypted message: " + encryptedMsgFromClient);
+
+            if(encryptedMsgFromClient.equalsIgnoreCase("quit")) {
+                break;
+            }
         }
 
     }
