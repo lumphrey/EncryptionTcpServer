@@ -8,8 +8,14 @@ import java.net.Socket;
  */
 public class EncryptionTcpServer {
 
+    private static boolean mDebug = true;
+
     private static int mPort = -1;
     private static int mTotalSchemes = -1;
+    private static int mScheme = -1;
+
+    private static SubstitutionCipher mSubCipher;
+    private static TranspositionCipher mTransCipher;
 
     //for use in Diffie-Hellman key exchange
     private static int mG = 5; //base
@@ -60,13 +66,20 @@ public class EncryptionTcpServer {
         mSecretKey = calculateSecret(clientNum);
         System.out.println("Calculated secret key: " + mSecretKey);
 
+        //determine scheme to use
+        mScheme = mSecretKey % mTotalSchemes;
+
         //send server's "special number" to client
         int serverNum = (int) (Math.pow(mG, mLocalSecret) % mP);
         System.out.println("Sending int " + serverNum + " to client...");
-        sendUnencryptedMessage(Integer.toString(serverNum));
+        sendUnencryptedMessage(Integer.toString(serverNum) + "\n");
 
-        //wait for "ready" message from client before starting secure transfers
-
+        initializeCiphers();
+        String encryptedMsgFromClient = "";
+        while(true) {
+            encryptedMsgFromClient = waitForEncryptedMessage();
+            System.out.println("Decrypted message: " + encryptedMsgFromClient);
+        }
 
     }
 
@@ -158,6 +171,18 @@ public class EncryptionTcpServer {
 
     }
 
+    /**
+     * Initializes the ciphers.
+     */
+    private static void initializeCiphers() {
+        mSubCipher = new SubstitutionCipher(mTotalSchemes);
+        mTransCipher = new TranspositionCipher();
+
+        if(mDebug) {
+            mSubCipher.printPermutations();
+        }
+    }
+
 
     /**
      * Blocks until a message is read from the input stream.
@@ -167,7 +192,7 @@ public class EncryptionTcpServer {
         String message = null;
 
         while(true) {
-            System.out.println("Waiting for message...");
+            System.out.println("Waiting for unencrypted message...");
             try {
                 message = mReader.readLine();
                 System.out.println("Message received: " + message);
@@ -184,6 +209,49 @@ public class EncryptionTcpServer {
         }
 
         return message;
+    }
+
+    /**
+     * Waits for an encrypted message, then decrypts it.
+     * @return Plaintext.
+     */
+    private static String waitForEncryptedMessage() {
+        String message = null;
+
+        while(true) {
+            System.out.println("Waiting for encrypted message...");
+            try {
+                message = mReader.readLine();
+                System.out.println("Received encrypted message from client: " + message);
+            }
+            catch (IOException e) {
+                System.out.println("Error receiving encrypted message.");
+                e.printStackTrace();
+                System.exit(-1);
+            }
+
+            if(message != null) {
+                break;
+            }
+        }
+
+
+        String decrypted = decrypt(message);
+
+        return decrypted;
+    }
+
+
+    private static String decrypt(String ciphertext) {
+
+        System.out.println("Decrypting ciphertext: " + ciphertext);
+
+
+        String subCiphertext = mTransCipher.decrypt(ciphertext, mScheme);
+
+        String plaintext = mSubCipher.decrypt(subCiphertext, mScheme);
+
+        return plaintext;
     }
 
     private static void sendUnencryptedMessage(String msg) {
