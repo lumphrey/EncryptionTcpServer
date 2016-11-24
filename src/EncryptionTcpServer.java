@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Random;
 
 /**
  *
@@ -19,7 +20,7 @@ public class EncryptionTcpServer {
 
     //for use in Diffie-Hellman key exchange
     private static int mG = 5; //base
-    private static int mP = 23; //modulus
+    private static int mP = 23; //modulus, must be prime
     private static int mLocalSecret = 6; //TODO: randomize
     private static int mSecretKey;
 
@@ -36,11 +37,12 @@ public class EncryptionTcpServer {
      */
     public static void main(String[] args) {
 
-        mSecretKey = testComputeSecret();
-        System.out.println("Secret computed: " + mSecretKey);
+        //mSecretKey = testComputeSecret();
+        //System.out.println("Secret computed: " + mSecretKey);
 
         //initialization
         extractArgs(args);
+        //randomizeLocalSecret(); //TODO large numbers break the program
         initializeServer();
         listen();
         initalizeStreams();
@@ -68,6 +70,8 @@ public class EncryptionTcpServer {
 
         //determine scheme to use
         mScheme = mSecretKey % mTotalSchemes;
+
+        System.out.println("Using security scheme " + mScheme);
 
         //send server's "special number" to client
         int serverNum = (int) (Math.pow(mG, mLocalSecret) % mP);
@@ -146,6 +150,16 @@ public class EncryptionTcpServer {
             e.printStackTrace();
             System.exit(-1);
         }
+    }
+
+
+    /**
+     * Randomizes the local secret.
+     */
+    private static void randomizeLocalSecret() {
+        Random random = new Random();
+        mLocalSecret = random.nextInt(14) + 1;
+        System.out.println("Local secret chosen: " + mLocalSecret);
     }
 
 
