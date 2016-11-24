@@ -46,6 +46,7 @@ public class EncryptionTcpServer {
         initializeServer();
         listen();
         initalizeStreams();
+        initializeCiphers();
 
 
         //wait for client's "special number", needed to calculate secret key
@@ -53,7 +54,7 @@ public class EncryptionTcpServer {
         int clientNum = -1;
         try {
             clientNum = Integer.parseInt(message);
-            System.out.println("Received integer " + clientNum + " from client. Calculating key...");
+            System.out.println("\n\n\nReceived integer " + clientNum + " from client. Calculating key...");
         }
         catch (NumberFormatException e) {
             System.out.println("Expected integer from client. Closing connection.");
@@ -78,7 +79,6 @@ public class EncryptionTcpServer {
         System.out.println("Sending int " + serverNum + " to client...");
         sendUnencryptedMessage(Integer.toString(serverNum) + "\n");
 
-        initializeCiphers();
         String encryptedMsgFromClient = "";
         while(true) {
             encryptedMsgFromClient = waitForEncryptedMessage();
@@ -237,7 +237,7 @@ public class EncryptionTcpServer {
         String message = null;
 
         while(true) {
-            System.out.println("Waiting for encrypted message...");
+            System.out.println("\n\nWaiting for encrypted message...");
             try {
                 message = mReader.readLine();
                 System.out.println("Received encrypted message from client: " + message);
@@ -266,6 +266,9 @@ public class EncryptionTcpServer {
 
 
         String subCiphertext = mTransCipher.decrypt(ciphertext, mScheme);
+
+        System.out.println("Reversed transposition: " + subCiphertext);
+        System.out.println("Applying reverse substitution...");
 
         String plaintext = mSubCipher.decrypt(subCiphertext, mScheme);
 
